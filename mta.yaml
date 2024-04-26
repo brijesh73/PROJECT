@@ -1,0 +1,67 @@
+_schema-version: '3.2'
+ID: PROJECT
+version: 0.0.1
+
+parameters:
+  enable-parallel-deployments: true
+
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm install --production
+        - npx -p @sap/cds-dk cds build --production
+
+modules:
+  # ---------------- DATABASE DEPLOYER MODULE ------------------
+  - name: PROJECT-db-deployer
+  # ------------------------------------------------------------
+    type: hdb
+    path: gen/db
+    parameters:
+      buildpack: nodejs_buildpack
+      memory: 256M
+      disk-quota: 1024M
+    requires:
+      - name: PROJECT-db
+        properties:                   
+          TARGET_CONTAINER: PROJECT_HDI    
+
+  # --------------------- SERVER MODULE ------------------------
+  - name: PROJECT-srv
+  # ------------------------------------------------------------
+    type: nodejs
+    path: gen/srv
+    parameters:
+      buildpack: nodejs_buildpack
+      memory: 512M
+      disk-quota: 1024M
+    requires:
+      - name: PROJECT-db
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+
+
+
+resources:
+
+
+
+
+  # ------------------- HDI CONTAINER SERVICE ------------------
+  - name: PROJECT-db
+  # ------------------------------------------------------------
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+      service-name: PROJECT_HDI  
+      config:                               
+         schema: PROJECT_HDI      
+    properties:
+      hdi-service-name: ${service-name}
+
+
+
